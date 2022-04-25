@@ -24,8 +24,9 @@ def convert_to_timestamp(datetime_array: np.ndarray) -> np.ndarray:
     :return: array of timestamps
     :rtype: np.ndarray
     """
-
-    return datetime_array.astype(int) // 10 ** 6
+    # return datetime_array.astype(int) // 10 ** 6
+    # fixed by Dan.
+    return datetime_array.astype(np.dtype('datetime64[ms]')).astype(np.int64)
 
 
 class IdentityTransformer(TransformerMixin, BaseEstimator):

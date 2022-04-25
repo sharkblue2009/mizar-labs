@@ -33,8 +33,8 @@ class MizarFeatureUnion(FeatureUnion):
 
     def transform(self, X):
         Xs = super().transform(X)
-
-        return pd.DataFrame(Xs, index=X.index)
+        feature_names = [x[0] for x in self.transformer_list]
+        return pd.DataFrame(Xs, index=X.index, columns=feature_names)
 
 
 class MizarPipeline(Pipeline):
@@ -408,12 +408,14 @@ class StrategySignalPipeline:
             )
         # add primary model predict proba values for metalabel model as features
         if self.metalabeling_use_proba_primary_model:
+            # Note(Dshu): n_classes_ is missing for CatBoostClassifier, change to classes_
             X_primary_proba_features = pd.DataFrame(
                 self.primary_model.predict_proba(X_primary_aligned),
                 index=X_primary_aligned.index,
                 columns=[
                     f"primary_side_pred_proba_{i}"
-                    for i in range(self.primary_model.n_classes_)
+                    # for i in range(self.primary_model.n_classes_)
+                    for i in range(len(self.primary_model.classes_))
                 ],
             )
             # to avoid the creation of unwanted nans the join between the the
@@ -449,13 +451,14 @@ class StrategySignalPipeline:
         if self.metalabeling_model:
             check_is_fitted(self.metalabeling_model)
 
-        target_index = X_dict[self.align_on_].index
+        if self.align_on_:
+            target_index = X_dict[self.align_on_].index
 
-        for df_name, df in X_dict.items():
-            if target_index[0] > df.index[-1]:
-                raise ValueError(
-                    f"There is no intersection between {df_name} and {self.align_on_}"
-                )
+            for df_name, df in X_dict.items():
+                if target_index[0] > df.index[-1]:
+                    raise ValueError(
+                        f"There is no intersection between {df_name} and {self.align_on_}"
+                    )
 
         X_features_dict = self.transform(X_dict)
         X_features_dict = self._align_on(X_features_dict)
